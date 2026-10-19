@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Windows 11 Web OS</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent:#0078d4;
+  --accent-soft:rgba(0,120,212,.25);
+  --text:#f3f3f3;
+  --dim:#9d9d9d;
+  --glass:rgba(28,28,28,.72);
+  --glass-strong:rgba(38,38,38,.94);
+  --border:rgba(255,255,255,.09);
+  --win-bg:#202020;
+  --win-bg2:#2b2b2b;
+  --hover:rgba(255,255,255,.07);
+  --cursor:default;
+  --cursor-ptr:pointer;
+}
+body.light{
+  --text:#1b1b1b;--dim:#5f5f5f;
+  --glass:rgba(245,245,245,.80);
+  --glass-strong:rgba(252,252,252,.96);
+  --border:rgba(0,0,0,.09);
+  --win-bg:#f5f5f5;--win-bg2:#ffffff;
+  --hover:rgba(0,0,0,.06);
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Segoe UI Variable','Segoe UI',system-ui,-apple-system,sans-serif;
+  background:#000;color:var(--text);cursor:var(--cursor);user-select:none}
+button,input,select,textarea,a{cursor:var(--cursor-ptr);font-family:inherit;color:inherit}
+input,textarea{user-select:text}
+button{background:none;border:0}
+
+/* BOOT */
+#boot{position:fixed;inset:0;z-index:99999;background:#000;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:34px;transition:opacity .6s}
+.boot-logo{display:grid;grid-template-columns:1fr 1fr;gap:5px;width:78px;height:78px}
+.boot-logo span{background:#0a84ff;border-radius:2px;animation:pulse 1.6s infinite ease-in-out}
+.boot-logo span:nth-child(2){animation-delay:.15s}
+.boot-logo span:nth-child(3){animation-delay:.3s}
+.boot-logo span:nth-child(4){animation-delay:.45s}
+@keyframes pulse{0%,100%{opacity:.35;transform:scale(.94)}50%{opacity:1;transform:scale(1)}}
+.boot-spin{width:34px;height:34px;border:3px solid rgba(255,255,255,.15);border-top-color:#fff;
+  border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.boot-text{color:#9a9a9a;font-size:13px;letter-spacing:.4px}
+
+/* LOCK */
+#lock{position:fixed;inset:0;z-index:99000;display:none;align-items:center;justify-content:center;
+  flex-direction:column;background:rgba(0,0,0,.55);backdrop-filter:blur(28px) saturate(140%)}
+#lock.show{display:flex}
+.lock-time{font-size:96px;font-weight:200;line-height:1;letter-spacing:-2px}
+.lock-date{font-size:20px;font-weight:300;opacity:.85;margin-top:6px}
+.lock-center{text-align:center;color:#fff}
+.lock-avatar{width:96px;height:96px;border-radius:50%;background:rgba(255,255,255,.14);
+  display:flex;align-items:center;justify-content:center;font-size:44px;margin:38px auto 12px;
+  border:1px solid rgba(255,255,255,.2)}
+.lock-name{font-size:20px;margin-bottom:18px}
+.lock-btn{padding:10px 42px;border-radius:20px;background:rgba(255,255,255,.16);
+  border:1px solid rgba(255,255,255,.25);color:#fff;font-size:14px;transition:.15s}
+.lock-btn:hover{background:rgba(255,255,255,.26)}
+
+/* DESKTOP */
+#desktop{position:fixed;inset:0;background-size:cover;background-position:center;
+  background-repeat:no-repeat;transition:background .5s}
+#icons{position:absolute;top:14px;left:14px;display:grid;grid-auto-flow:column;
+  grid-template-rows:repeat(auto-fill,96px);gap:4px;height:calc(100% - 110px)}
+.dicon{width:92px;height:92px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:7px;border-radius:6px;font-size:12px;text-align:center;
+  color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.95);padding:6px;transition:background .12s}
+.dicon:hover{background:rgba(255,255,255,.13)}
+.dicon:active{background:rgba(255,255,255,.22)}
+.dicon .glyph{font-size:34px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.dicon .lbl{line-height:1.15;max-height:2.3em;overflow:hidden;word-break:break-word}
+
+/* WINDOWS */
+#windows{position:fixed;inset:0 0 48px 0;pointer-events:none;z-index:100}
+.window{position:absolute;pointer-events:auto;display:flex;flex-direction:column;
+  background:var(--win-bg);border:1px solid var(--border);border-radius:10px;
+  box-shadow:0 22px 70px rgba(0,0,0,.6);overflow:hidden;min-width:320px;min-height:200px}
+.window.opening{animation:winIn .18s ease-out}
+@keyframes winIn{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+.window.active{box-shadow:0 30px 90px rgba(0,0,0,.75),0 0 0 1px var(--accent)}
+.window.minimized{display:none}
+.window.maximized{border-radius:0;border-color:transparent}
+.titlebar{height:38px;display:flex;align-items:center;gap:9px;padding-left:13px;
+  flex-shrink:0;background:var(--win-bg2);border-bottom:1px solid var(--border)}
+.wicon{font-size:14px}
+.wtitle{font-size:12.5px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.92}
+.wctrl{display:flex;height:100%}
+.wbtn{width:46px;height:100%;display:flex;align-items:center;justify-content:center;
+  color:var(--text);opacity:.85;transition:background .1s}
+.wbtn:hover{background:var(--hover);opacity:1}
+.wbtn.cls:hover{background:#e81123;color:#fff}
+.wbody{flex:1;overflow:auto;position:relative;min-height:0}
+.rsz{position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize;z-index:5}
+.rsz::after{content:'';position:absolute;right:3px;bottom:3px;width:8px;height:8px;
+  border-right:2px solid var(--dim);border-bottom:2px solid var(--dim);opacity:.5}
+
+/* TASKBAR */
+#taskbar{position:fixed;left:0;right:0;bottom:0;height:48px;z-index:9000;
+  background:var(--glass);backdrop-filter:blur(30px) saturate(170%);
+  -webkit-backdrop-filter:blur(30px) saturate(170%);border-top:1px solid var(--border)}
+.tb-center{position:absolute;left:50%;top:0;bottom:0;transform:translateX(-50%);
+  display:flex;align-items:center;gap:4px}
+.tb-btn{width:42px;height:38px;border-radius:6px;display:flex;align-items:center;
+  justify-content:center;font-size:17px;position:relative;transition:background .12s}
+.tb-btn:hover{background:var(--hover)}
+.tb-btn.active{background:var(--hover)}
+.tb-btn.running::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);
+  width:14px;height:3px;border-radius:2px;background:var(--accent)}
+.tb-btn.active.running::after{width:20px}
+.win-logo{display:grid;grid-template-columns:1fr 1fr;gap:2px;width:17px;height:17px}
+.win-logo i{background:var(--text);border-radius:1px;display:block}
+.tb-tray{position:absolute;right:6px;top:0;bottom:0;display:flex;align-items:center;gap:6px;
+  font-size:11.5px;padding-right:4px}
+.tray-icons{display:flex;gap:10px;padding:0 8px;opacity:.9;font-size:13px}
+.tray-clock{padding:5px 9px;border-radius:5px;text-align:right;line-height:1.28;transition:background .12s}
+.tray-clock:hover{background:var(--hover)}
+.tc-date{font-size:11px;opacity:.8}
+
+/* START MENU */
+#startmenu{position:fixed;bottom:56px;left:50%;transform:translateX(-50%) translateY(14px);
+  width:600px;max-width:calc(100vw - 24px);height:640px;max-height:calc(100vh - 90px);
+  background:var(--glass-strong);backdrop-filter:blur(40px) saturate(170%);
+  -webkit-backdrop-filter:blur(40px) saturate(170%);
+  border:1px solid var(--border);border-radius:12px;z-index:9500;
+  box-shadow:0 30px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;transition:opacity .16s,transform .16s}
+#startmenu.open{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+.sm-search{padding:22px 40px 10px}
+.sm-search input{width:100%;padding:9px 14px;border-radius:20px;border:1px solid var(--border);
+  background:rgba(255,255,255,.06);outline:0;font-size:13px}
+body.light .sm-search input{background:rgba(0,0,0,.04)}
+.sm-label{font-size:12.5px;font-weight:600;padding:0 40px;margin:14px 0 8px}
+.sm-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;padding:0 32px;overflow:auto;flex-shrink:0}
+.sm-tile{display:flex;flex-direction:column;align-items:center;gap:7px;padding:12px 4px;
+  border-radius:7px;font-size:11px;text-align:center;transition:background .12s}
+.sm-tile:hover{background:var(--hover)}
+.sm-tile .g{font-size:27px}
+.sm-rec{flex:1;overflow:auto;padding:0 32px}
+.sm-rec-item{display:flex;gap:12px;align-items:center;padding:9px 10px;border-radius:6px;font-size:12.5px}
+.sm-rec-item:hover{background:var(--hover)}
+.sm-footer{display:flex;align-items:center;justify-content:space-between;
+  padding:12px 34px;border-top:1px solid var(--border);background:rgba(0,0,0,.1)}
+body.light .sm-footer{background:rgba(0,0,0,.02)}
+.sm-user{font-size:12.5px;display:flex;gap:9px;align-items:center;padding:5px 9px;border-radius:5px}
+.sm-user:hover{background:var(--hover)}
+.sm-power{width:36px;height:36px;border-radius:5px;font-size:15px;display:flex;
+  align-items:center;justify-content:center}
+.sm-power:hover{background:var(--hover)}
+
+/* CALENDAR */
+#calendar{position:fixed;right:8px;bottom:56px;width:320px;z-index:9500;
+  background:var(--glass-strong);backdrop-filter:blur(40px) saturate(170%);
+  border:1px solid var(--border);border-radius:10px;padding:16px;
+  box-shadow:0 24px 60px rgba(0,0,0,.6);opacity:0;pointer-events:none;
+  transform:translateY(10px);transition:.15s}
+#calendar.open{opacity:1;pointer-events:auto;transform:translateY(0)}
+.cal-head{font-size:13px;font-weight:600;margin-bottom:10px;text-align:center}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-size:11.5px;text-align:center}
+.cal-grid div{padding:6px 0;border-radius:5px}
+.cal-grid .dow{opacity:.55;font-size:10.5px}
+.cal-grid .today{background:var(--accent);color:#fff;font-weight:600}
+.cal-now{font-size:26px;font-weight:300;text-align:center;margin-bottom:2px}
+
+/* CONTEXT MENU */
+#ctxmenu{position:fixed;z-index:9800;min-width:210px;padding:5px;
+  background:var(--glass-strong);backdrop-filter:blur(30px) saturate(170%);
+  border:1px solid var(--border);border-radius:8px;
+  box-shadow:0 16px 44px rgba(0,0,0,.55);display:none;font-size:12.5px}
+.ctx-item{padding:7px 12px;border-radius:5px;display:flex;gap:10px;align-items:center}
+.ctx-item:hover{background:var(--hover)}
+.ctx-sep{height:1px;background:var(--border);margin:5px 6px}
+
+/* EXPLORER */
+.expl{display:flex;height:100%}
+.expl-side{width:190px;flex-shrink:0;padding:8px;border-right:1px solid var(--border);overflow:auto}
+.expl-side-item{padding:8px 10px;border-radius:6px;font-size:12.5px;display:flex;gap:9px;
+  align-items:center;white-space:nowrap;overflow:hidden}
+.expl-side-item:hover{background:var(--hover)}
+.expl-main{flex:1;display:flex;flex-direction:column;min-width:0}
+.expl-bar{display:flex;gap:6px;padding:8px;align-items:center;border-bottom:1px solid var(--border)}
+.navbtn{width:28px;height:28px;border-radius:5px;display:flex;align-items:center;
+  justify-content:center;font-size:13px}
+.navbtn:hover{background:var(--hover)}
+.pathbar{flex:1;font-size:12px;padding:6px 11px;border-radius:5px;border:1px solid var(--border);
+  background:rgba(255,255,255,.04);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.light .pathbar{background:rgba(0,0,0,.03)}
+.expl-search{width:150px;font-size:12px;padding:6px 10px;border-radius:5px;
+  border:1px solid var(--border);background:rgba(255,255,255,.04);outline:0}
+.expl-grid{flex:1;overflow:auto;padding:12px;display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;align-content:start}
+.fitem{padding:11px 5px;border-radius:6px;text-align:center;font-size:11.5px;
+  display:flex;flex-direction:column;align-items:center;gap:7px}
+.fitem:hover{background:var(--hover)}
+.fitem.sel{background:var(--accent-soft);outline:1px solid var(--accent)}
+.ficon{font-size:30px;line-height:1}
+.fname{word-break:break-word;line-height:1.2;max-height:2.4em;overflow:hidden}
+.expl-status{padding:5px 12px;font-size:11px;opacity:.6;border-top:1px solid var(--border)}
+.empty{grid-column:1/-1;text-align:center;opacity:.5;font-size:12.5px;padding:40px}
+
+/* NOTEPAD */
+.notepad{display:flex;flex-direction:column;height:100%}
+.np-menu{display:flex;gap:2px;padding:4px 8px;border-bottom:1px solid var(--border);font-size:12px}
+.np-menu button{padding:4px 11px;border-radius:4px}
+.np-menu button:hover{background:var(--hover)}
+.np-area{flex:1;width:100%;border:0;outline:0;resize:none;background:transparent;
+  color:inherit;padding:14px;font:14px/1.6 Consolas,'Courier New',monospace}
+.np-status{padding:4px 12px;font-size:11px;opacity:.6;border-top:1px solid var(--border);
+  display:flex;justify-content:space-between}
+
+/* CALCULATOR */
+.calc{display:flex;flex-direction:column;height:100%;padding:10px;gap:10px}
+.calc-screen{text-align:right;padding:14px 16px;border-radius:8px;background:rgba(255,255,255,.05);
+  min-height:96px;display:flex;flex-direction:column;justify-content:flex-end}
+body.light .calc-screen{background:rgba(0,0,0,.04)}
+.calc-expr{font-size:12px;opacity:.55;min-height:16px;word-break:break-all}
+.calc-out{font-size:34px;font-weight:600;word-break:break-all;line-height:1.1}
+.calc-keys{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.calc-keys button{border-radius:7px;background:rgba(255,255,255,.07);font-size:16px;
+  transition:.1s;display:flex;align-items:center;justify-content:center}
+body.light .calc-keys button{background:rgba(0,0,0,.05)}
+.calc-keys button:hover{background:rgba(255,255,255,.15)}
+body.light .calc-keys button:hover{background:rgba(0,0,0,.1)}
+.calc-keys .op{background:rgba(255,255,255,.11)}
+.calc-keys .eq{background:var(--accent);color:#fff}
+.calc-keys .eq:hover{filter:brightness(1.15)}
+.calc-keys .span2{grid-column:span 2}
+
+/* PAINT */
+.paint{display:flex;flex-direction:column;height:100%}
+.paint-bar{display:flex;gap:10px;align-items:center;padding:8px 12px;
+  border-bottom:1px solid var(--border);font-size:12px;flex-wrap:wrap}
+.paint-bar input[type=color]{width:34px;height:28px;border:1px solid var(--border);
+  border-radius:5px;background:none;padding:2px}
+.paint-bar input[type=range]{width:110px;accent-color:var(--accent)}
+.paint-canvas-wrap{flex:1;position:relative;overflow:hidden;background:#fff}
+.paint-canvas-wrap canvas{display:block;width:100%;height:100%;cursor:crosshair}
+
+/* SETTINGS */
+.settings{height:100%;display:flex;flex-direction:column}
+.set-head{font-size:20px;font-weight:600;padding:18px 24px 10px}
+.set-body{flex:1;overflow:auto;padding:0 24px 24px;display:flex;flex-direction:column;gap:14px}
+.card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:9px;padding:16px}
+body.light .card{background:rgba(255,255,255,.75)}
+.card h3{font-size:13.5px;margin-bottom:14px;font-weight:600}
+.row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 0;
+  font-size:12.5px;flex-wrap:wrap}
+.seg{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.seg button{padding:6px 16px;font-size:12px}
+.seg button.on{background:var(--accent);color:#fff}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.sw{width:26px;height:26px;border-radius:50%;border:2px solid transparent;transition:.12s}
+.sw.on{border-color:var(--text);transform:scale(1.12)}
+.walls{display:flex;gap:8px;flex-wrap:wrap}
+.wall{width:70px;height:44px;border-radius:6px;border:2px solid transparent;
+  background-size:cover;background-position:center}
+.wall.on{border-color:var(--accent)}
+.cursors{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));
+  gap:10px;margin-bottom:10px}
+.curcard{border:1px solid var(--border);border-radius:8px;padding:12px 8px;text-align:center;
+  font-size:11.5px;display:flex;flex-direction:column;align-items:center;gap:8px;transition:.12s}
+.curcard:hover{background:var(--hover)}
+.curcard.on{border-color:var(--accent);background:var(--accent-soft)}
+.curcard svg,.curcard img{width:24px;height:24px}
+.dim{color:var(--dim);font-size:12px;line-height:1.6}
+
+/* TERMINAL */
+.term{height:100%;display:flex;flex-direction:column;background:#0c0c0c;color:#ccc;
+  font:13px/1.5 Consolas,'Courier New',monospace;padding:12px}
+.term-out{flex:1;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.term-line{display:flex;gap:8px;align-items:center}
+.term-prompt{color:#4ec9b0;white-space:nowrap}
+.term-in{flex:1;background:none;border:0;outline:0;color:#fff;font:inherit}
+.term-ok{color:#6ee7a8}
+.term-err{color:#ff6b6b}
+
+/* BROWSER */
+.browser{display:flex;flex-direction:column;height:100%}
+.b-bar{display:flex;gap:6px;align-items:center;padding:8px;border-bottom:1px solid var(--border)}
+.b-url{flex:1;padding:7px 13px;border-radius:16px;border:1px solid var(--border);
+  background:rgba(255,255,255,.05);outline:0;font-size:12.5px}
+body.light .b-url{background:rgba(0,0,0,.04)}
+.b-go{padding:7px 15px;border-radius:16px;background:var(--accent);color:#fff;font-size:12px}
+.b-proxy{font-size:11.5px;padding:6px 8px;border-radius:6px;border:1px solid var(--border);
+  background:var(--win-bg2);outline:0}
+.b-chips{display:flex;gap:6px;padding:7px 10px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+.chip{font-size:11.5px;padding:4px 11px;border-radius:12px;border:1px solid var(--border);
+  background:rgba(255,255,255,.04)}
+.chip:hover{background:var(--hover)}
+.b-view{flex:1;position:relative;background:#fff;min-height:0}
+.b-view iframe{width:100%;height:100%;border:0;display:block}
+.b-note{font-size:11px;padding:5px 12px;border-top:1px solid var(--border);
+  opacity:.65;display:flex;justify-content:space-between;gap:10px}
+
+/* SNAKE */
+.game{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;padding:14px}
+.game-top{display:flex;gap:26px;align-items:center;font-size:13px}
+.game-top b{color:var(--accent);font-size:15px}
+.g-btn{padding:6px 16px;border-radius:6px;background:var(--accent);color:#fff;font-size:12px}
+.g-btn:hover{filter:brightness(1.15)}
+.g-canvas{border-radius:10px;background:#0b1220;box-shadow:0 12px 40px rgba(0,0,0,.45);
+  max-width:100%;max-height:100%}
+.game-hint{font-size:11.5px;opacity:.6}
+
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:6px;
+  border:2px solid transparent;background-clip:content-box}
+body.light ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.22);background-clip:content-box}
+</style>
+</head>
+<body>
+
+<div id="boot">
+  <div class="boot-logo"><span></span><span></span><span></span><span></span></div>
+  <div class="boot-spin"></div>
+  <div class="boot-text">Starting Windows…</div>
+</div>
+
+<div id="lock">
+  <div class="lock-center">
+    <div class="lock-time" id="lockTime">00:00</div>
+    <div class="lock-date" id="lockDate">—</div>
+    <div class="lock-avatar">👤</div>
+    <div class="lock-name">User</div>
+    <button class="lock-btn" id="signIn">Sign in</button>
+  </div>
+</div>
+
+<div id="desktop"><div id="icons"></div></div>
+<div id="windows"></div>
+
+<div id="startmenu">
+  <div class="sm-search"><input id="smSearch" placeholder="Search apps, settings and documents" /></div>
+  <div class="sm-label">Pinned</div>
+  <div class="sm-grid" id="smGrid"></div>
+  <div class="sm-label">Recommended</div>
+  <div class="sm-rec" id="smRec"></div>
+  <div class="sm-footer">
+    <div class="sm-user">👤 <span>User</span></div>
+    <button class="sm-power" id="lockBtn" title="Lock">⏻</button>
+  </div>
+</div>
+
+<div id="calendar">
+  <div class="cal-now" id="calNow">00:00</div>
+  <div class="cal-head" id="calHead"></div>
+  <div class="cal-grid" id="calGrid"></div>
+</div>
+
+<div id="ctxmenu"></div>
+
+<div id="taskbar">
+  <div class="tb-center">
+    <button class="tb-btn" id="startBtn" title="Start">
+      <span class="win-logo"><i></i><i></i><i></i><i></i></span>
+    </button>
+    <button class="tb-btn" id="searchBtn" title="Search">🔍</button>
+    <div id="tbApps" style="display:flex;gap:4px"></div>
+  </div>
+  <div class="tb-tray">
+    <div class="tray-icons">
+      <span title="Wi-Fi">📶</span>
+      <span title="Volume">🔊</span>
+      <span title="Battery">🔋</span>
+    </div>
+    <div class="tray-clock" id="trayClock">
+      <div class="tc-time" id="tcTime">00:00</div>
+      <div class="tc-date" id="tcDate">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   CURSOR ENGINE
+   ===================================================================== */
+const ARROW = 'M2 2 L2 17 L5.6 13.4 L8.1 18.4 L10.2 17.4 L7.7 12.4 L12.6 12.4 Z';
+
+function curSVG(inner, size) {
+  size = size || 22;
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size +
+    '" viewBox="0 0 20 20">' + inner + '</svg>';
+}
+function curCSS(inner, hx, hy) {
+  return 'url("data:image/svg+xml,' + encodeURIComponent(curSVG(inner)) + '") ' + hx + ' ' + hy + ', auto';
+}
+
+const CURSORS = {
+  classic: { name: 'Classic', svg: null },
+  neon: {
+    name: 'Neon',
+    svg: '<path d="' + ARROW + '" fill="#00e5ff" stroke="#00e5ff" stroke-width="3.2" stroke-linejoin="round" opacity=".28"/>' +
+         '<path d="' + ARROW + '" fill="#e8ffff" stroke="#00e5ff" stroke-width="1.3" stroke-linejoin="round"/>',
+    hx: 2, hy: 2
+  },
+  pixel: {
+    name: 'Pixel',
+    svg: '<g shape-rendering="crispEdges"><path d="' + ARROW + '" fill="#ffffff" stroke="#000000" stroke-width="2.4" stroke-linejoin="miter" paint-order="stroke"/></g>',
+    hx: 2, hy: 2
+  },
+  hacker: {
+    name: 'Hacker',
+    svg: '<path d="' + ARROW + '" fill="#0aff6f" stroke="#003b1a" stroke-width="1.6" stroke-linejoin="round"/>',
+    hx: 2, hy: 2
+  },
+  cross: {
+    name: 'Crosshair',
+    svg: '<path d="M10 1 V6 M10 14 V19 M1 10 H6 M14 10 H19" stroke="#00e5ff" stroke-width="1.6"/>' +
+         '<circle cx="10" cy="10" r="2.2" fill="none" stroke="#00e5ff" stroke-width="1.6"/>',
+    hx: 10, hy: 10
+  },
+  dot: {
+    name: 'Glow Dot',
+    svg: '<circle cx="10" cy="10" r="5.5" fill="rgba(0,229,255,.22)" stroke="#00e5ff" stroke-width="1.7"/>' +
+         '<circle cx="10" cy="10" r="1.3" fill="#00e5ff"/>',
+    hx: 10, hy: 10
+  }
+};
+
+let customCursorCSS = null;
+
+function applyCursor(key) {
+  state.cursor = key;
+  let css = 'default', ptr = 'pointer';
+  if (key === 'custom' && customCursorCSS) {
+    css = customCursorCSS; ptr = customCursorCSS;
+  } else {
+    const c = CURSORS[key];
+    if (c && c.svg) { css = curCSS(c.svg, c.hx, c.hy); ptr = css; }
+  }
+  document.documentElement.style.setProperty('--cursor', css);
+  document.documentElement.style.setProperty('--cursor-ptr', ptr);
+}
+
+/* =====================================================================
+   WALLPAPERS / STATE
+   ===================================================================== */
+const WALLPAPERS = [
+  'radial-gradient(58% 78% at 22% 22%, rgba(56,120,255,.85), transparent 62%),' +
+  'radial-gradient(58% 78% at 78% 26%, rgba(168,58,255,.62), transparent 62%),' +
+  'radial-gradient(72% 92% at 50% 88%, rgba(0,196,255,.5), transparent 66%),' +
+  'linear-gradient(160deg,#050914,#0a1024 52%,#04060f)',
+
+  'radial-gradient(60% 80% at 30% 20%, rgba(255,94,150,.72), transparent 62%),' +
+  'radial-gradient(60% 80% at 72% 74%, rgba(255,170,60,.55), transparent 62%),' +
+  'linear-gradient(150deg,#140610,#1d0a18 55%,#08040a)',
+
+  'radial-gradient(65% 85% at 24% 78%, rgba(0,230,190,.6), transparent 62%),' +
+  'radial-gradient(60% 80% at 80% 22%, rgba(40,110,255,.7), transparent 62%),' +
+  'linear-gradient(150deg,#03120f,#04121f 55%,#020608)',
+
+  'radial-gradient(70% 90% at 50% 0%, rgba(120,120,255,.55), transparent 60%),' +
+  'radial-gradient(70% 90% at 50% 100%, rgba(255,80,180,.45), transparent 62%),' +
+  'linear-gradient(180deg,#0a0a18,#121024 60%,#06060e)',
+
+  'radial-gradient(80% 100% at 50% 50%, rgba(220,220,230,.16), transparent 70%),' +
+  'linear-gradient(140deg,#101014,#1b1b22 50%,#0a0a0e)'
+];
+
+const ACCENTS = ['#0078d4','#00b894','#e84393','#8e44ad','#e67e22','#e81123','#00b4d8','#f1c40f'];
+
+const state = { theme:'dark', accent:'#0078d4', wallpaper:0, cursor:'classic' };
+
+function hexToRGBA(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return 'rgba(' + ((n>>16)&255) + ',' + ((n>>8)&255) + ',' + (n&255) + ',' + a + ')';
+}
+function applyAccent(hex) {
+  state.accent = hex;
+  document.documentElement.style.setProperty('--accent', hex);
+  document.documentElement.style.setProperty('--accent-soft', hexToRGBA(hex, .25));
+}
+function applyWallpaper(i) {
+  state.wallpaper = i;
+  document.getElementById('desktop').style.background = WALLPAPERS[i];
+}
+function applyTheme(t) {
+  state.theme = t;
+  document.body.classList.toggle('light', t === 'light');
+}
+
+/* =====================================================================
+   VIRTUAL FILE SYSTEM
+   ===================================================================== */
+const FS = {
+  name: 'This PC', type: 'folder', children: [
+    { name:'Desktop', type:'folder', children: [
+      { name:'Welcome.txt', type:'file', ext:'txt', content:
+'Welcome to Windows 11 Web OS 👋\n\n' +
+'This whole desktop is a single HTML file.\n\n' +
+'Try:\n' +
+'  • Double-click desktop icons\n' +
+'  • Right-click the desktop\n' +
+'  • Drag windows by their title bar\n' +
+'  • Open Settings → Mouse & cursor to change your cursor\n' +
+'  • Open Settings → Personalization for wallpaper + accent\n' +
+'  • Open the Web Proxy app\n' +
+'  • Play Snake 🐍\n\n' +
+'Have fun!' }
+    ]},
+    { name:'Documents', type:'folder', children: [
+      { name:'notes.txt', type:'file', ext:'txt', content:'Shopping list:\n- Coffee\n- Mechanical keyboard\n- More RAM' },
+      { name:'ideas.md', type:'file', ext:'md', content:'# Ideas\n\n1. Build a web OS\n2. Ship it\n3. Profit' },
+      { name:'Projects', type:'folder', children: [
+        { name:'todo.txt', type:'file', ext:'txt', content:'[x] Make a desktop\n[ ] Conquer the world' }
+      ]}
+    ]},
+    { name:'Downloads', type:'folder', children: [
+      { name:'installer.exe', type:'file', ext:'exe' },
+      { name:'photo.png', type:'file', ext:'png' }
+    ]},
+    { name:'Pictures', type:'folder', children: [
+      { name:'wallpaper.png', type:'file', ext:'png' },
+      { name:'screenshot.png', type:'file', ext:'png' }
+    ]},
+    { name:'Music', type:'folder', children: [] },
+    { name:'Videos', type:'folder', children: [] },
+    { name:'Recycle Bin', type:'folder', children: [] },
+    { name:'Local Disk (C:)', type:'folder', children: [
+      { name:'Windows', type:'folder', children: [
+        { name:'System32', type:'folder', children: [] }
+      ]},
+      { name:'Users', type:'folder', children: [
+        { name:'User', type:'folder', children: [] }
+      ]},
+      { name:'Program Files', type:'folder', children: [] }
+    ]}
+  ]
+};
+
+function findNode(path) {
+  let node = FS;
+  for (let i = 1; i < path.length; i++) {
+    const n = (node.children || []).find(function(c){ return c.name === path[i]; });
+    if (!n) return node;
+    node = n;
+  }
+  return node;
+}
+
+/* =====================================================================
+   WINDOW MANAGER
+   ===================================================================== */
+const winMap = new Map();
+let zTop = 1000;
+let activeWindowEl = null;
+
+const ICO_MIN = '<svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5h6" stroke="currentColor" stroke-width="1.1"/></svg>';
+const ICO_MAX = '<svg width="10" height="10" viewBox="0 0 10 10"><rect x="2.4" y="2.4" width="5.2" height="5.2" fill="none" stroke="currentColor" stroke-width="1.1"/></svg>';
+const ICO_CLS = '<svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.1"/></svg>';
+
+function focusWin(el) {
+  if (!el) return;
+  el.style.zIndex = ++zTop;
+  document.querySelectorAll('.window').forEach(function(w){ w.classList.remove('active'); });
+  el.classList.add('active');
+  activeWindowEl = el;
+  try { el.focus({ preventScroll: true }); } catch (e) {}
+  updateTaskbar();
+}
+
+function openApp(id, opts) {
+  opts = opts || {};
+  const app = APPS[id];
+  if (!app) { console.warn('Unknown app', id); return null; }
+
+  if (winMap.has(id)) {
+    const el = winMap.get(id);
+    el.classList.remove('minimized');
+    focusWin(el);
+    if (opts.file && el._openFile) el._openFile(opts.file);
+    return el;
+  }
+
+  const el = document.createElement('div');
+  el.className = 'window opening';
+  el.tabIndex = -1;
+
+  const w = Math.min(app.w || 720, window.innerWidth - 70);
+  const h = Math.min(app.h || 480, window.innerHeight - 130);
+  el.style.width = w + 'px';
+  el.style.height = h + 'px';
+
+  const off = winMap.size * 26;
+  el.style.left = Math.max(10, Math.min(window.innerWidth - w - 20,
+    Math.round((window.innerWidth - w) / 2) + (off % 140) - 70)) + 'px';
+  el.style.top = Math.max(10, Math.min(window.innerHeight - h - 80,
+    Math.round((window.innerHeight - h - 48) / 2) + (off % 110) - 55)) + 'px';
+
+  el.innerHTML =
+    '<div class="titlebar">' +
+      '<span class="wicon">' + app.icon + '</span>' +
+      '<span class="wtitle">' + app.name + '</span>' +
+      '<div class="wctrl">' +
+        '<button class="wbtn min" title="Minimize">' + ICO_MIN + '</button>' +
+        '<button class="wbtn max" title="Maximize">' + ICO_MAX + '</button>' +
+        '<button class="wbtn cls" title="Close">' + ICO_CLS + '</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="wbody"></div>' +
+    '<div class="rsz"></div>';
+
+  document.getElementById('windows').appendChild(el);
+  winMap.set(id, el);
+  el._appId = id;
+
+  const body = el.querySelector('.wbody');
+  try { app.build(body, el, opts); }
+  catch (err) {
+    body.innerHTML = '<div style="padding:20px;color:#ff6b6b">App crashed: ' + err.message + '</div>';
+    console.error(err);
+  }
+
+  el.querySelector('.cls').onclick = function(e){ e.stopPropagation(); closeWin(el); };
+  el.querySelector('.min').onclick = function(e){ e.stopPropagation(); el.classList.add('minimized'); updateTaskbar(); };
+  el.querySelector('.max').onclick = function(e){ e.stopPropagation(); toggleMax(el); };
+
+  makeDraggable(el, el.querySelector('.titlebar'));
+  el.querySelector('.titlebar').addEventListener('dblclick', function(){ toggleMax(el); });
+
+  const rsz = el.querySelector('.rsz');
+  rsz.addEventListener('pointerdown', function(ev){
+    ev.stopPropagation(); ev.preventDefault();
+    const sw = el.offsetWidth, sh = el.offsetHeight, sx = ev.clientX, sy = ev.clientY;
+    function move(e2){
+      el.style.width = Math.max(320, sw + e2.clientX - sx) + 'px';
+      el.style.height = Math.max(200, sh + e2.clientY - sy) + 'px';
+    }
+    function up(){
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', up);
+    }
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', up);
+  });
+
+  el.addEventListener('pointerdown', function(){ focusWin(el); });
+  setTimeout(function(){ el.classList.remove('opening'); }, 200);
+  focusWin(el);
+  updateTaskbar();
+  return el;
+}
+
+function closeWin(el) {
+  if (el._cleanup) { try { el._cleanup(); } catch (e) {} }
+  el.style.transition = 'transform .12s, opacity .12s';
+  el.style.transform = 'scale(.96)';
+  el.style.opacity = '0';
+  setTimeout(function(){
+    const id = el._appId;
+    el.remove();
+    winMap.delete(id);
+    if (activeWindowEl === el) activeWindowEl = null;
+    updateTaskbar();
+  }, 120);
+}
+
+function toggleMax(el) {
+  if (el.classList.contains('maximized')) {
+    el.classList.remove('maximized');
+    const p = el._prev || {};
+    el.style.left = p.left || '60px';
+    el.style.top = p.top || '60px';
+    el.style.width = p.width || '700px';
+    el.style.height = p.height || '480px';
+  } else {
+    el._prev = { left: el.style.left, top: el.style.top, width: el.style.width, height: el.style.height };
+    el.classList.add('maximized');
+    el.style.left = '0'; el.style.top = '0';
+    el.style.width = '100%'; el.style.height = '100%';
+  }
+}
+
+function makeDraggable(el, handle) {
+  let dragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
+  handle.addEventListener('pointerdown', function(e){
+    if (e.target.closest('.wctrl')) return;
+    focusWin(el);
+    if (el.classList.contains('maximized')) return;
+    dragging = true;
+    sx = e.clientX; sy = e.clientY; ox = el.offsetLeft; oy = el.offsetTop;
+    handle.setPointerCapture(e.pointerId);
+  });
+  handle.addEventListener('pointermove', function(e){
+    if (!dragging) return;
+    const nx = ox + e.clientX - sx;
+    const ny = oy + e.clientY - sy;
+    el.style.left = Math.max(-el.offsetWidth + 130, Math.min(window.innerWidth - 130, nx)) + 'px';
+    el.style.top = Math.max(0, Math.min(window.innerHeight - 100, ny)) + 'px';
+  });
+  handle.addEventListener('pointerup', function(){ dragging = false; });
+}
+
+window.addEventListener('keydown', function(e){
+  if (e.target.matches('input,textarea,select')) return;
+  if (activeWindowEl && activeWindowEl._keydown) activeWindowEl._keydown(e);
+});
+
+/* =====================================================================
+   APPS
+   ===================================================================== */
+const APPS = {};
+
+/* ---------- FILE EXPLORER ---------- */
+APPS.explorer = {
+  name: 'File Explorer', icon: '📁', w: 880, h: 560,
+  build: function(root, winEl, opts) {
+    const S = { path: (opts.path ? opts.path.slice() : ['This PC']), history: [] };
+
+    root.innerHTML =
+      '<div class="expl">' +
+        '<aside class="expl-side"></aside>' +
+        '<div class="expl-main">' +
+          '<div class="expl-bar">' +
+            '<button class="navbtn" data-nav="back">←</button>' +
+            '<button class="navbtn" data-nav="up">↑</button>' +
+            '<div class="pathbar"></div>' +
+            '<input class="expl-search" placeholder="Search" />' +
+          '</div>' +
+          '<div class="expl-grid"></div>' +
+          '<div class="expl-status"></div>' +
+        '</div>' +
+      '</div>';
+
+    const side = root.querySelector('.expl-side');
+    const grid = root.querySelector('.expl-grid');
+    const pathbar = root.querySelector('.pathbar');
+    const status = root.querySelector('.expl-status');
+
+    ['This PC','Desktop','Documents','Downloads','Pictures','Music','Videos','Recycle Bin','Local Disk (C:)']
+      .forEach(function(n){
+        const d = document.createElement('div');
+        d.className = 'expl-side-item';
+        const ic = n === 'This PC' ? '🖥️' : n === 'Recycle Bin' ? '🗑️' : '📂';
+        d.innerHTML = '<span>' + ic + '</span><span>' + n + '</span>';
+        d.onclick = function(){
+          S.history.push(S.path.slice());
+          S.path = n === 'This PC' ? ['This PC'] : ['This PC', n];
+          render();
+        };
+        side.appendChild(d);
+      });
+
+    function iconFor(item) {
+      if (item.type === 'folder') return '📁';
+      const e = (item.ext || '').toLowerCase();
+      if (e === 'txt') return '📄';
+      if (e === 'md') return '📝';
+      if (e === 'png' || e === 'jpg') return '🖼️';
+      if (e === 'exe') return '⚙️';
+      return '📄';
+    }
+
+    function openFile(item) {
+      if (item.ext === 'txt' || item.ext === 'md') openApp('notepad', { file: item });
+      else if (item.ext === 'png' || item.ext === 'jpg') openApp('paint');
+      else alert('Windows can\'t open "' + item.name + '".');
+    }
+
+    function render() {
+      const node = findNode(S.path);
+      pathbar.textContent = S.path.join('  ›  ');
+      grid.innerHTML = '';
+      const items = node.children || [];
+      if (!items.length) grid.innerHTML = '<div class="empty">This folder is empty</div>';
+      items.forEach(function(item){
+        const d = document.createElement('div');
+        d.className = 'fitem';
+        d.innerHTML = '<div class="ficon">' + iconFor(item) + '</div><div class="fname">' + item.name + '</div>';
+        d.onclick = function(){
+          grid.querySelectorAll('.fitem').forEach(function(x){ x.classList.remove('sel'); });
+          d.classList.add('sel');
+        };
+        d.ondblclick = function(){
+          if (item.type === 'folder') {
+            S.history.push(S.path.slice());
+            S.path.push(item.name);
+            render();
+          } else openFile(item);
+        };
+        grid.appendChild(d);
+      });
+      status.textContent = items.length + ' item' + (items.length === 1 ? '' : 's');
+    }
+
+    root.querySelector('[data-nav="back"]').onclick = function(){
+      if (S.history.length) { S.path = S.history.pop(); render(); }
+    };
+    root.querySelector('[data-nav="up"]').onclick = function(){
+      if (S.path.length > 1) { S.path.pop(); render(); }
+    };
+
+    winEl._openFile = openFile;
+    render();
+  }
+};
+
+/* ---------- NOTEPAD ---------- */
+APPS.notepad = {
+  name: 'Notepad', icon: '📝', w: 660, h: 500,
+  build: function(root, winEl, opts) {
+    root.innerHTML =
+      '<div class="notepad">' +
+        '<div class="np-menu">' +
+          '<button data-a="new">New</button>' +
+          '<button data-a="save">Save</button>' +
+          '<button data-a="clear">Clear</button>' +
+          '<button data-a="wrap">Wrap</button>' +
+        '</div>' +
+        '<textarea class="np-area" spellcheck="false" placeholder="Start typing…"></textarea>' +
+        '<div class="np-status"><span class="np-name">Untitled</span><span class="np-pos">Ln 1, Col 1</span></div>' +
+      '</div>';
+
+    const ta = root.querySelector('.np-area');
+    const nameEl = root.querySelector('.np-name');
+    const posEl = root.querySelector('.np-pos');
+
+    function loadFile(f) {
+      ta.value = f.content || '';
+      nameEl.textContent = f.name;
+      winEl.querySelector('.wtitle').textContent = f.name + ' — Notepad';
+    }
+    if (opts.file) loadFile(opts.file);
+    winEl._openFile = loadFile;
+
+    function updatePos() {
+      const upto = ta.value.slice(0, ta.selectionStart).split('\n');
+      posEl.textContent = 'Ln ' + upto.length + ', Col ' + (upto[upto.length-1].length + 1);
+    }
+    ta.addEventListener('input', updatePos);
+    ta.addEventListener('click', updatePos);
+    ta.addEventListener('keyup', updatePos);
+
+    root.querySelector('.np-menu').addEventListener('click', function(e){
+      const a = e.target.dataset.a;
+      if (!a) return;
+      if (a === 'new') { ta.value = ''; nameEl.textContent = 'Untitled'; winEl.querySelector('.wtitle').textContent = 'Notepad'; }
+      if (a === 'clear') ta.value = '';
+      if (a === 'save') {
+        const blob = new Blob([ta.value], { type: 'text/plain' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = (nameEl.textContent || 'untitled');
+        link.click();
+      }
+      if (a === 'wrap') ta.style.whiteSpace = ta.style.whiteSpace === 'pre' ? 'pre-wrap' : 'pre';
+    });
+
+    setTimeout(function(){ ta.focus(); }, 60);
+  }
+};
+
+/* ---------- CALCULATOR ---------- */
+APPS.calc = {
+  name: 'Calculator', icon: '🧮', w: 340, h: 520,
+  build: function(root) {
+    root.innerHTML =
+      '<div class="calc">' +
+        '<div class="calc-screen"><div class="calc-expr"></div><div class="calc-out">0</div></div>' +
+        '<div class="calc-keys">' +
+          '<button data-k="C">C</button><button data-k="back">⌫</button><button data-k="%" class="op">%</button><button data-k="/" class="op">÷</button>' +
+          '<button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button data-k="*" class="op">×</button>' +
+          '<button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button><button data-k="-" class="op">−</button>' +
+          '<button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button data-k="+" class="op">+</button>' +
+          '<button data-k="0" class="span2">0</button><button data-k=".">.</button><button data-k="=" class="eq">=</button>' +
+        '</div>' +
+      '</div>';
+
+    const exprEl = root.querySelector('.calc-expr');
+    const outEl = root.querySelector('.calc-out');
+    let expr = '';
+
+    function show() {
+      exprEl.textContent = expr || '';
+      outEl.textContent = expr || '0';
+    }
+
+    root.querySelector('.calc-keys').addEventListener('click', function(e){
+      const k = e.target.dataset.k;
+      if (!k) return;
+      if (k === 'C') expr = '';
+      else if (k === 'back') expr = expr.slice(0, -1);
+      else if (k === '=') {
+        try {
+          if (!/^[0-9+\-*/.() %]+$/.test(expr)) throw 0;
+          let r = Function('"use strict";return (' + expr.replace(/%/g, '/100') + ')')();
+          if (!isFinite(r)) throw 0;
+          expr = String(Math.round(r * 1e10) / 1e10);
+        } catch (err) { expr = 'Error'; }
+      } else expr += k;
+      show();
+    });
+    show();
+  }
+};
+
+/* ---------- PAINT ---------- */
+APPS.paint = {
+  name: 'Paint', icon: '🎨', w: 800, h: 580,
+  build: function(root) {
+    root.innerHTML =
+      '<div class="paint">' +
+        '<div class="paint-bar">' +
+          '<input type="color" value="#00a2ff" />' +
+          '<input type="range" min="1" max="60" value="6" />' +
+          '<span class="szlabel">6px</span>' +
+          '<button class="navbtn" data-p="eraser" title="Eraser">🧽</button>' +
+          '<button class="navbtn" data-p="clear" title="Clear">🗑️</button>' +
+          '<button class="navbtn" data-p="download" title="Save PNG">💾</button>' +
+        '</div>' +
+        '<div class="paint-canvas-wrap"><canvas></canvas></div>' +
+      '</div>';
+
+    const cv = root.querySelector('canvas');
+    const wrap = root.querySelector('.paint-canvas-wrap');
+    const colorIn = root.querySelector('input[type=color]');
+    const sizeIn = root.querySelector('input[type=range]');
+    const szLabel = root.querySelector('.szlabel');
+    let eraser = false;
+
+    function fit() {
+      const r = wrap.getBoundingClientRect();
+      const data = cv.width ? cv.toDataURL() : null;
+      cv.width = Math.max(50, Math.round(r.width));
+      cv.height = Math.max(50, Math.round(r.height));
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+      if (data) {
+        const img = new Image();
+        img.onload = function(){ ctx.drawImage(img, 0, 0); };
+        img.src = data;
+      }
+    }
+    setTimeout(fit, 50);
+
+    const ctx = cv.getContext('2d');
+    let drawing = false;
+
+    function pos(e) {
+      const r = cv.getBoundingClientRect();
+      return { x: (e.clientX - r.left) * cv.width / r.width,
+               y: (e.clientY - r.top) * cv.height / r.height };
+    }
+
+    cv.addEventListener('pointerdown', function(e){
+      drawing = true;
+      const p = pos(e);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      cv.setPointerCapture(e.pointerId);
+    });
+    cv.addEventListener('pointermove', function(e){
+      if (!drawing) return;
+      const p = pos(e);
+      ctx.strokeStyle = eraser ? '#fff' : colorIn.value;
+      ctx.lineWidth = parseInt(sizeIn.value, 10);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    });
+    cv.addEventListener('pointerup', function(){ drawing = false; });
+
+    sizeIn.oninput = function(){ szLabel.textContent = sizeIn.value + 'px'; };
+
+    root.querySelector('.paint-bar').addEventListener('click', function(e){
+      const a = e.target.closest('[data-p]');
+      if (!a) return;
+      const p = a.dataset.p;
+      if (p === 'eraser') {
+        eraser = !eraser;
+        a.style.background = eraser ? 'var(--accent)' : '';
+        a.style.color = eraser ? '#fff' : '';
+      }
+      if (p === 'clear') { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height); }
+      if (p === 'download') {
+        const link = document.createElement('a');
+        link.download = 'painting.png';
+        link.href = cv.toDataURL();
+        link.click();
+      }
+    });
+  }
+};
+
+/* ---------- WEB PROXY / BROWSER ---------- */
+APPS.browser = {
+  name: 'Web Proxy', icon: '🌐', w: 960, h: 640,
+  build: function(root) {
+    root.innerHTML =
+      '<div class="browser">' +
+        '<div class="b-bar">' +
+          '<button class="navbtn" data-b="reload">⟳</button>' +
+          '<input class="b-url" placeholder="Enter a URL…" value="https://example.com" />' +
+          '<button class="b-go">Go</button>' +
+          '<select class="b-proxy">' +
+            '<option value="direct">Direct (iframe)</option>' +
+            '<option value="allorigins">AllOrigins</option>' +
+            '<option value="corsproxy">corsproxy.io</option>' +
+            '<option value="jina">r.jina.ai (reader)</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="b-chips">' +
+          '<button class="chip" data-u="https://example.com">example.com</button>' +
+          '<button class="chip" data-u="https://openstreetmap.org">openstreetmap</button>' +
+          '<button class="chip" data-u="https://archive.org">archive.org</button>' +
+          '<button class="chip" data-u="https://en.m.wikipedia.org/wiki/Windows_11">wikipedia</button>' +
+          '<button class="chip" data-u="https://duckduckgo.com/html/?q=windows+11">search</button>' +
+        '</div>' +
+        '<div class="b-view"><iframe sandbox="allow-scripts allow-forms allow-popups allow-same-origin"></iframe></div>' +
+        '<div class="b-note"><span>⚠ Many sites block embedding. A real proxy needs a backend server.</span><span class="b-status">ready</span></div>' +
+      '</div>';
+
+    const urlIn = root.querySelector('.b-url');
+    const frame = root.querySelector('iframe');
+    const proxy = root.querySelector('.b-proxy');
+    const status = root.querySelector('.b-status');
+
+    function go() {
+      let u = urlIn.value.trim();
+      if (!u) return;
+      if (!/^https?:\/\//i.test(u)) {
+        u = /\./.test(u) ? 'https://' + u
+                         : 'https://duckduckgo.com/html/?q=' + encodeURIComponent(u);
+        urlIn.value = u;
+      }
+      const mode = proxy.value;
+      let src = u;
+      if (mode === 'allorigins') src = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u);
+      else if (mode === 'corsproxy') src = 'https://corsproxy.io/?' + encodeURIComponent(u);
+      else if (mode === 'jina') src = 'https://r.jina.ai/' + u;
+
+      status.textContent = 'loading…';
+      frame.src = src;
+      frame.onload = function(){ status.textContent = 'loaded'; };
+      setTimeout(function(){
+        if (status.textContent === 'loading…') status.textContent = 'blocked / slow';
+      }, 6000);
+    }
+
+    root.querySelector('.b-go').onclick = go;
+    urlIn.addEventListener('keydown', function(e){ if (e.key === 'Enter') go(); });
+    root.querySelector('[data-b="reload"]').onclick = function(){ frame.src = frame.src; };
+    root.querySelector('.b-chips').addEventListener('click', function(e){
+      const c = e.target.closest('.chip');
+      if (!c) return;
+      urlIn.value = c.dataset.u;
+      go();
+    });
+    go();
+  }
+};
+
+/* ---------- SNAKE ---------- */
+APPS.snake = {
+  name: 'Snake', icon: '🐍', w: 500, h: 620,
+  build: function(root, winEl) {
+    root.innerHTML =
+      '<div class="game">' +
+        '<div class="game-top">' +
+          '<span>Score <b class="g-score">0</b></span>' +
+          '<span>Best <b class="g-best">0</b></span>' +
+          '<button class="g-btn">Restart</button>' +
+        '</div>' +
+        '<canvas class="g-canvas" width="420" height="420"></canvas>' +
+        '<div class="game-hint">Arrows / WASD to move · Space to pause</div>' +
+      '</div>';
+
+    const cv = root.querySelector('.g-canvas');
+    const ctx = cv.getContext('2d');
+    const CELL = 21, N = 20;
+    const scoreEl = root.querySelector('.g-score');
+    const bestEl = root.querySelector('.g-best');
+
+    let snake, dir, nextDir, food, score, alive, paused, timer;
+    let best = parseInt(localStorage.getItem('snakeBest') || '0', 10);
+    bestEl.textContent = best;
+
+    function reset() {
+      snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+      dir = { x: 1, y: 0 }; nextDir = { x: 1, y: 0 };
+      score = 0; alive = true; paused = false;
+      scoreEl.textContent = '0';
+      placeFood();
+    }
+    function placeFood() {
+      do {
+        food = { x: (Math.random()*N)|0, y: (Math.random()*N)|0 };
+      } while (snake.some(function(s){ return s.x === food.x && s.y === food.y; }));
+    }
+    function step() {
+      if (!alive || paused) return;
+      dir = nextDir;
+      const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+      if (head.x < 0 || head.y < 0 || head.x >= N || head.y >= N ||
+          snake.some(function(s){ return s.x === head.x && s.y === head.y; })) {
+        alive = false;
+        if (score > best) { best = score; localStorage.setItem('snakeBest', best); bestEl.textContent = best; }
+        draw();
+        return;
+      }
+      snake.unshift(head);
+      if (head.x === food.x && head.y === food.y) {
+        score += 10;
+        scoreEl.textContent = score;
+        placeFood();
+      } else snake.pop();
+      draw();
+    }
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x+r, y);
+      ctx.arcTo(x+w, y, x+w, y+h, r);
+      ctx.arcTo(x+w, y+h, x, y+h, r);
+      ctx.arcTo(x, y+h, x, y, r);
+      ctx.arcTo(x, y, x+w, y, r);
+      ctx.closePath();
+    }
+    function draw() {
+      ctx.fillStyle = '#0b1220';
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.strokeStyle = 'rgba(255,255,255,.04)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < N; i++) {
+        ctx.beginPath(); ctx.moveTo(i*CELL,0); ctx.lineTo(i*CELL,cv.height); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,i*CELL); ctx.lineTo(cv.width,i*CELL); ctx.stroke();
+      }
+      ctx.fillStyle = '#ff5470';
+      ctx.shadowColor = '#ff5470'; ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.arc(food.x*CELL + CELL/2, food.y*CELL + CELL/2, CELL*0.34, 0, Math.PI*2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      snake.forEach(function(s, i){
+        const t = i / Math.max(1, snake.length);
+        ctx.fillStyle = i === 0 ? '#7cf7ff' : 'rgba(0,190,220,' + (1 - t*0.6) + ')';
+        if (i === 0) { ctx.shadowColor = '#7cf7ff'; ctx.shadowBlur = 16; }
+        const pad = i === 0 ? 1.5 : 2.5;
+        roundRect(s.x*CELL + pad, s.y*CELL + pad, CELL - pad*2, CELL - pad*2, 5);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+
+      if (!alive) {
+        ctx.fillStyle = 'rgba(0,0,0,.65)';
+        ctx.fillRect(0,0,cv.width,cv.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = '600 26px Segoe UI, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Game Over', cv.width/2, cv.height/2 - 8);
+        ctx.font = '14px Segoe UI, sans-serif';
+        ctx.fillStyle = '#9fd8ff';
+        ctx.fillText('Score ' + score + ' — press Restart', cv.width/2, cv.height/2 + 22);
+      } else if (paused) {
+        ctx.fillStyle = 'rgba(0,0,0,.5)';
+        ctx.fillRect(0,0,cv.width,cv.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = '600 24px Segoe UI, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Paused', cv.width/2, cv.height/2);
+      }
+    }
+
+    winEl._keydown = function(e) {
+      const k = e.key.toLowerCase();
+      if (['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d',' '].indexOf(k) >= 0) e.preventDefault();
+      if (k === 'arrowup' || k === 'w') { if (dir.y === 0) nextDir = { x: 0, y: -1 }; }
+      else if (k === 'arrowdown' || k === 's') { if (dir.y === 0) nextDir = { x: 0, y: 1 }; }
+      else if (k === 'arrowleft' || k === 'a') { if (dir.x === 0) nextDir = { x: -1, y: 0 }; }
+      else if (k === 'arrowright' || k === 'd') { if (dir.x === 0) nextDir = { x: 1, y: 0 }; }
+      else if (k === ' ') { if (!alive) { reset(); draw(); } else paused = !paused; draw(); }
+    };
+
+    root.querySelector('.g-btn').onclick = function(){ reset(); draw(); };
+
+    reset(); draw();
+    timer = setInterval(step, 115);
+    winEl._cleanup = function(){ clearInterval(timer); };
+    setTimeout(function(){ focusWin(winEl); }, 100);
+  }
+};
+
+/* ---------- TERMINAL ---------- */
+APPS.terminal = {
+  name: 'Terminal', icon: '⌨️', w: 700, h: 440,
+  build: function(root, winEl) {
+    root.innerHTML =
+      '<div class="term">' +
+        '<div class="term-out"></div>' +
+        '<div class="term-line">' +
+          '<span class="term-prompt">C:\\Users\\You&gt;</span>' +
+          '<input class="term-in" autocomplete="off" spellcheck="false" />' +
+        '</div>' +
+      '</div>';
+
+    const out = root.querySelector('.term-out');
+    const inp = root.querySelector('.term-in');
+    let cwd = ['This PC','Users','User'];
+
+    function print(text, cls) {
+      const d = document.createElement('div');
+      if (cls) d.className = cls;
+      d.textContent = text;
+      out.appendChild(d);
+      out.scrollTop = out.scrollHeight;
+    }
+
+    print('Windows 11 Web OS [Version 11.0.22631.0]');
+    print('Type "help" for a list of commands.');
+    print('');
+
+    const cmds = {
+      help: function(){
+        print('Available commands:');
+        print('  help               show this list');
+        print('  ls                 list files in current folder');
+        print('  cd <folder>        change directory (.. to go up)');
+        print('  cat <file>         print a text file');
+        print('  echo <text>        print text');
+        print('  open <app>         launch an app');
+        print('  theme dark|light   change theme');
+        print('  accent <#hex>      change accent color');
+        print('  cursor <name>      classic|neon|pixel|hacker|cross|dot');
+        print('  wall <0-4>         change wallpaper');
+        print('  date               show date/time');
+        print('  cls                clear the screen');
+      },
+      ls: function(){
+        const node = findNode(cwd);
+        const items = node.children || [];
+        if (!items.length) return print('(empty folder)');
+        items.forEach(function(i){ print((i.type === 'folder' ? '[DIR]  ' : '       ') + i.name); });
+      },
+      cd: function(arg){
+        if (!arg) return print('usage: cd <folder>');
+        if (arg === '..') { if (cwd.length > 1) cwd.pop(); return; }
+        if (arg === '/') { cwd = ['This PC']; return; }
+        const node = findNode(cwd);
+        const target = (node.children || []).find(function(c){
+          return c.name.toLowerCase() === arg.toLowerCase() && c.type === 'folder';
+        });
+        if (target) cwd.push(target.name);
+        else print('The system cannot find the path specified.', 'term-err');
+      },
+      cat: function(arg){
+        if (!arg) return print('usage: cat <file>');
+        const node = findNode(cwd);
+        const f = (node.children || []).find(function(c){
+          return c.name.toLowerCase() === arg.toLowerCase() && c.type === 'file';
+        });
+        if (!f) return print('File not found.', 'term-err');
+        print(f.content || '(binary file)');
+      },
+      echo: function(arg){ print(arg || ''); },
+      open: function(arg){
+        if (!arg) return print('usage: open <app>');
+        if (APPS[arg]) { openApp(arg); print('Launched ' + arg + '.', 'term-ok'); }
+        else print('Unknown app: ' + arg, 'term-err');
+      },
+      theme: function(arg){
+        if (arg === 'dark' || arg === 'light') { applyTheme(arg); print('Theme set to ' + arg + '.', 'term-ok'); }
+        else print('usage: theme dark|light', 'term-err');
+      },
+      accent: function(arg){
+        if (/^#[0-9a-f]{6}$/i.test(arg || '')) { applyAccent(arg); print('Accent set.', 'term-ok'); }
+        else print('usage: accent #0078d4', 'term-err');
+      },
+      cursor: function(arg){
+        if (CURSORS[arg]) { applyCursor(arg); print('Cursor set to ' + arg + '.', 'term-ok'); }
+        else print('Options: ' + Object.keys(CURSORS).join(', '), 'term-err');
+      },
+      wall: function(arg){
+        const i = parseInt(arg, 10);
+        if (i >= 0 && i < WALLPAPERS.length) { applyWallpaper(i); print('Wallpaper ' + i + ' applied.', 'term-ok'); }
+        else print('usage: wall 0-' + (WALLPAPERS.length - 1), 'term-err');
+      },
+      date: function(){ print(new Date().toString()); },
+      cls: function(){ out.innerHTML = ''; }
+    };
+
+    inp.addEventListener('keydown', function(e){
+      if (e.key !== 'Enter') return;
+      const raw = inp.value.trim();
+      inp.value = '';
+      print('C:\\Users\\You> ' + raw);
+      const parts = raw.split(/\s+/);
+      const cmd = (parts[0] || '').toLowerCase();
+      if (!cmd) return;
+      if (cmds[cmd]) cmds[cmd](parts.slice(1).join(' '));
+      else print("'" + cmd + "' is not recognized as a command. Try 'help'.", 'term-err');
+    });
+
+    setTimeout(function(){ inp.focus(); }, 80);
+    winEl._keydown = function(e){ if (e.key.length === 1 || e.key === 'Backspace') inp.focus(); };
+  }
+};
+
+/* ---------- SETTINGS ---------- */
+APPS.settings = {
+  name: 'Settings', icon: '⚙️', w: 820, h: 600,
+  build: function(root) {
+    root.innerHTML =
+      '<div class="settings">' +
+        '<div class="set-head">Settings</div>' +
+        '<div class="set-body">' +
+
+          '<div class="card">' +
+            '<h3>🎨 Personalization</h3>' +
+            '<div class="row"><label>Theme</label>' +
+              '<div class="seg">' +
+                '<button data-theme="dark">Dark</button>' +
+                '<button data-theme="light">Light</button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="row"><label>Accent color</label><div class="swatches" id="swatches"></div></div>' +
+            '<div class="row"><label>Wallpaper</label><div class="walls" id="walls"></div></div>' +
+          '</div>' +
+
+          '<div class="card">' +
+            '<h3>🖱️ Mouse &amp; cursor</h3>' +
+            '<div class="cursors" id="cursorList"></div>' +
+            '<div class="row">' +
+              '<label>Upload custom cursor (.png / .svg)</label>' +
+              '<input type="file" id="curUpload" accept="image/*" style="font-size:12px" />' +
+            '</div>' +
+            '<div class="dim">Tip: keep custom images ≤ 32×32 px — browsers reject oversized cursors.</div>' +
+          '</div>' +
+
+          '<div class="card">' +
+            '<h3>ℹ️ About</h3>' +
+            '<p class="dim">Windows 11 Web OS — a single-file desktop simulation.<br>' +
+            'Window manager, virtual file system, 8 apps, and a fully custom cursor engine.<br>' +
+            'No build step, no dependencies.</p>' +
+          '</div>' +
+
+        '</div>' +
+      '</div>';
+
+    /* theme */
+    root.querySelectorAll('[data-theme]').forEach(function(b){
+      b.classList.toggle('on', b.dataset.theme === state.theme);
+      b.onclick = function(){
+        applyTheme(b.dataset.theme);
+        root.querySelectorAll('[data-theme]').forEach(function(x){
+          x.classList.toggle('on', x.dataset.theme === state.theme);
+        });
+      };
+    });
+
+    /* accent */
+    const sw = root.querySelector('#swatches');
+    ACCENTS.forEach(function(c){
+      const d = document.createElement('button');
+      d.className = 'sw' + (c === state.accent ? ' on' : '');
+      d.style.background = c;
+      d.onclick = function(){
+        applyAccent(c);
+        sw.querySelectorAll('.sw').forEach(function(x){ x.classList.remove('on'); });
+        d.classList.add('on');
+      };
+      sw.appendChild(d);
+    });
+
+    /* wallpaper */
+    const walls = root.querySelector('#walls');
+    WALLPAPERS.forEach(function(w, i){
+      const d = document.createElement('button');
+      d.className = 'wall' + (i === state.wallpaper ? ' on' : '');
+      d.style.background = w;
+      d.onclick = function(){
+        applyWallpaper(i);
+        walls.querySelectorAll('.wall').forEach(function(x){ x.classList.remove('on'); });
+        d.classList.add('on');
+      };
+      walls.appendChild(d);
+    });
+
+    /* cursors */
+    const list = root.querySelector('#cursorList');
+
+    function addCursorCard(key, previewHTML, label) {
+      const d = document.createElement('button');
+      d.className = 'curcard' + (key === state.cursor ? ' on' : '');
+      d.dataset.cur = key;
+      d.innerHTML = previewHTML + '<span>' + label + '</span>';
+      d.onclick = function(){
+        applyCursor(key);
+        list.querySelectorAll('.curcard').forEach(function(x){ x.classList.remove('on'); });
+        d.classList.add('on');
+      };
+      list.appendChild(d);
+      return d;
+    }
+
+    Object.keys(CURSORS).forEach(function(key){
+      const c = CURSORS[key];
+      const preview = c.svg ? curSVG(c.svg, 24)
+                            : '<span style="font-size:22px">➤</span>';
+      addCursorCard(key, preview, c.name);
+    });
+
+    /* custom cursor upload */
+    root.querySelector('#curUpload').onchange = function(e){
+      const f = e.target.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = function(ev){
+        const url = ev.target.result;
+        const img = new Image();
+        img.onload = function(){
+          customCursorCSS = 'url("' + url + '") 0 0, auto';
+          CURSORS.custom = { name: 'Custom', svg: null };
+          if (!list.querySelector('[data-cur="custom"]')) {
+            addCursorCard('custom', '<img src="' + url + '" alt="cursor" />', 'Custom');
+          }
+          applyCursor('custom');
+          list.querySelectorAll('.curcard').forEach(function(x){ x.classList.remove('on'); });
+          list.querySelector('[data-cur="custom"]').classList.add('on');
+        };
+        img.onerror = function(){ alert('Could not load that image as a cursor.'); };
+        img.src = url;
+      };
+      reader.readAsDataURL(f);
+    };
+  }
+};
+
+/* =====================================================================
+   TASKBAR
+   ===================================================================== */
+const PINNED_TASKBAR = ['explorer','browser','snake','settings'];
+
+function updateTaskbar() {
+  const wrap = document.getElementById('tbApps');
+  wrap.innerHTML = '';
+  const seen = {};
+  const ids = PINNED_TASKBAR.slice();
+  winMap.forEach(function(el, id){
+    if (ids.indexOf(id) === -1) ids.push(id);
+  });
+
+  ids.forEach(function(id){
+    const app = APPS[id];
+    if (!app || seen[id]) return;
+    seen[id] = true;
+    const btn = document.createElement('button');
+    btn.className = 'tb-btn';
+    btn.textContent = app.icon;
+    btn.title = app.name;
+    const win = winMap.get(id);
+    if (win) {
+      btn.classList.add('running');
+      if (!win.classList.contains('minimized') && activeWindowEl === win) btn.classList.add('active');
+    }
+    btn.onclick = function(){
+      const w = winMap.get(id);
+      if (!w) openApp(id);
+      else if (w.classList.contains('minimized')) { w.classList.remove('minimized'); focusWin(w); }
+      else if (activeWindowEl === w) { w.classList.add('minimized'); updateTaskbar(); }
+      else focusWin(w);
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+/* =====================================================================
+   DESKTOP ICONS
+   ===================================================================== */
+const DESKTOP_ICONS = [
+  { label: 'This PC',      glyph: '🖥️', app: 'explorer', path: ['This PC'] },
+  { label: 'File Explorer',glyph: '📁', app: 'explorer' },
+  { label: 'Notepad',      glyph: '📝', app: 'notepad' },
+  { label: 'Calculator',   glyph: '🧮', app: 'calc' },
+  { label: 'Paint',        glyph: '🎨', app: 'paint' },
+  { label: 'Settings',     glyph: '⚙️', app: 'settings' },
+  { label: 'Web Proxy',    glyph: '🌐', app: 'browser' },
+  { label: 'Snake',        glyph: '🐍', app: 'snake' },
+  { label: 'Terminal',     glyph: '⌨️', app: 'terminal' }
+];
+
+function renderDesktopIcons() {
+  const wrap = document.getElementById('icons');
+  wrap.innerHTML = '';
+  DESKTOP_ICONS.forEach(function(ic){
+    const d = document.createElement('div');
+    d.className = 'dicon';
+    d.innerHTML = '<div class="glyph">' + ic.glyph + '</div><div class="lbl">' + ic.label + '</div>';
+    d.ondblclick = function(){
+      openApp(ic.app, ic.path ? { path: ic.path } : {});
+    };
+    d.onclick = function(e){ e.stopPropagation(); };
+    d.oncontextmenu = function(e){ e.preventDefault(); e.stopPropagation(); };
+    wrap.appendChild(d);
+  });
+}
+
+/* =====================================================================
+   START MENU
+   ===================================================================== */
+function buildStartMenu() {
+  const grid = document.getElementById('smGrid');
+  grid.innerHTML = '';
+  const ids = ['explorer','notepad','calc','paint','settings','browser','snake','terminal'];
+  ids.forEach(function(id){
+    const app = APPS[id];
+    const t = document.createElement('button');
+    t.className = 'sm-tile';
+    t.dataset.name = app.name.toLowerCase();
+    t.innerHTML = '<span class="g">' + app.icon + '</span><span>' + app.name + '</span>';
+    t.onclick = function(){
+      openApp(id);
+      closeStartMenu();
+    };
+    grid.appendChild(t);
+  });
+
+  const rec = document.getElementById('smRec');
+  rec.innerHTML = '';
+  [
+    { icon:'📄', label:'Welcome.txt', sub:'Desktop' },
+    { icon:'📝', label:'ideas.md',    sub:'Documents' },
+    { icon:'🌐', label:'example.com', sub:'Recent site' },
+    { icon:'🐍', label:'Snake',       sub:'Game' }
+  ].forEach(function(r){
+    const d = document.createElement('div');
+    d.className = 'sm-rec-item';
+    d.innerHTML = '<span style="font-size:18px">' + r.icon + '</span>' +
+      '<div><div>' + r.label + '</div>' +
+      '<div style="font-size:10.5px;opacity:.55">' + r.sub + '</div></div>';
+    rec.appendChild(d);
+  });
+}
+
+function openStartMenu() {
+  document.getElementById('startmenu').classList.add('open');
+  setTimeout(function(){ document.getElementById('smSearch').focus(); }, 120);
+}
+function closeStartMenu() {
+  document.getElementById('startmenu').classList.remove('open');
+  document.getElementById('smSearch').value = '';
+  document.querySelectorAll('.sm-tile').forEach(function(t){ t.style.display = ''; });
+}
+
+/* =====================================================================
+   CONTEXT MENU
+   ===================================================================== */
+function showContextMenu(x, y, items) {
+  const menu = document.getElementById('ctxmenu');
+  menu.innerHTML = '';
+  items.forEach(function(it){
+    if (it === '-') {
+      const sep = document.createElement('div');
+      sep.className = 'ctx-sep';
+      menu.appendChild(sep);
+      return;
+    }
+    const d = document.createElement('div');
+    d.className = 'ctx-item';
+    d.innerHTML = '<span>' + it.icon + '</span><span>' + it.label + '</span>';
+    d.onclick = function(){
+      menu.style.display = 'none';
+      if (it.fn) it.fn();
+    };
+    menu.appendChild(d);
+  });
+  menu.style.left = Math.min(x, window.innerWidth - 235) + 'px';
+  menu.style.top = Math.min(y, window.innerHeight - 300) + 'px';
+  menu.style.display = 'block';
+}
+
+/* =====================================================================
+   CLOCK + CALENDAR
+   ===================================================================== */
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+function tickClock() {
+  const d = new Date();
+  const time = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  const t1 = document.getElementById('tcTime');
+  const t2 = document.getElementById('lockTime');
+  const t3 = document.getElementById('calNow');
+  if (t1) t1.textContent = time;
+  if (t2) t2.textContent = time;
+  if (t3) t3.textContent = time;
+
+  const short = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+  const long  = d.toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
+  const t4 = document.getElementById('tcDate');
+  const t5 = document.getElementById('lockDate');
+  if (t4) t4.textContent = short;
+  if (t5) t5.textContent = long;
+}
+
+function buildCalendar() {
+  const d = new Date();
+  const y = d.getFullYear(), m = d.getMonth();
+  const head = document.getElementById('calHead');
+  const grid = document.getElementById('calGrid');
+  if (!head || !grid) return;
+  head.textContent = d.toLocaleDateString(undefined, { month:'long', year:'numeric' });
+  grid.innerHTML = '';
+  ['S','M','T','W','T','F','S'].forEach(function(x){
+    const el = document.createElement('div');
+    el.className = 'dow';
+    el.textContent = x;
+    grid.appendChild(el);
+  });
+  const first = new Date(y, m, 1).getDay();
+  const days = new Date(y, m + 1, 0).getDate();
+  for (let i = 0; i < first; i++) grid.appendChild(document.createElement('div'));
+  for (let day = 1; day <= days; day++) {
+    const el = document.createElement('div');
+    el.textContent = day;
+    if (day === d.getDate()) el.classList.add('today');
+    grid.appendChild(el);
+  }
+}
+
+/* =====================================================================
+   GLOBAL EVENTS
+   ===================================================================== */
+function initEvents() {
+  /* start button */
+  document.getElementById('startBtn').onclick = function(e){
+    e.stopPropagation();
+    const sm = document.getElementById('startmenu');
+    if (sm.classList.contains('open')) closeStartMenu();
+    else openStartMenu();
+  };
+
+  /* search button */
+  document.getElementById('searchBtn').onclick = function(e){
+    e.stopPropagation();
+    openStartMenu();
+  };
+
+  /* start menu search filter */
+  document.getElementById('smSearch').addEventListener('input', function(e){
+    const q = e.target.value.toLowerCase().trim();
+    document.querySelectorAll('.sm-tile').forEach(function(t){
+      t.style.display = t.dataset.name.indexOf(q) >= 0 ? '' : 'none';
+    });
+  });
+
+  /* lock button */
+  document.getElementById('lockBtn').onclick = function(){
+    closeStartMenu();
+    document.getElementById('lock').classList.add('show');
+  };
+
+  /* sign in */
+  document.getElementById('signIn').onclick = function(){
+    document.getElementById('lock').classList.remove('show');
+  };
+
+  /* tray clock → calendar */
+  document.getElementById('trayClock').onclick = function(e){
+    e.stopPropagation();
+    buildCalendar();
+    document.getElementById('calendar').classList.toggle('open');
+  };
+
+  /* outside click closes menus */
+  document.addEventListener('pointerdown', function(e){
+    const sm = document.getElementById('startmenu');
+    if (sm.classList.contains('open') &&
+        !sm.contains(e.target) &&
+        !e.target.closest('#startBtn') &&
+        !e.target.closest('#searchBtn')) {
+      closeStartMenu();
+    }
+    const cal = document.getElementById('calendar');
+    if (cal.classList.contains('open') &&
+        !cal.contains(e.target) &&
+        !e.target.closest('#trayClock')) {
+      cal.classList.remove('open');
+    }
+    const ctx = document.getElementById('ctxmenu');
+    if (ctx.style.display === 'block' && !ctx.contains(e.target)) {
+      ctx.style.display = 'none';
+    }
+  });
+
+  /* desktop context menu */
+  document.getElementById('desktop').addEventListener('contextmenu', function(e){
+    e.preventDefault();
+    showContextMenu(e.clientX, e.clientY, [
+      { icon:'🔄', label:'Refresh',          fn: function(){ renderDesktopIcons(); } },
+      { icon:'🎨', label:'Personalize',      fn: function(){ openApp('settings'); } },
+      { icon:'🖼️', label:'Change wallpaper', fn: function(){ applyWallpaper((state.wallpaper + 1) % WALLPAPERS.length); } },
+      '-',
+      { icon:'⌨️', label:'Open Terminal',    fn: function(){ openApp('terminal'); } },
+      { icon:'🐍', label:'Play Snake',        fn: function(){ openApp('snake'); } },
+      { icon:'⚙️', label:'Display settings',  fn: function(){ openApp('settings'); } }
+    ]);
+  });
+
+  /* prevent browser context menu everywhere else */
+  document.addEventListener('contextmenu', function(e){
+    if (!e.target.closest('#desktop')) e.preventDefault();
+  });
+
+  /* keep windows above taskbar edge */
+  window.addEventListener('resize', function(){
+    document.querySelectorAll('.window.maximized').forEach(function(w){
+      w.style.width = '100%';
+      w.style.height = '100%';
+    });
+  });
+}
+
+/* =====================================================================
+   BOOT
+   ===================================================================== */
+function init() {
+  applyTheme('dark');
+  applyAccent('#0078d4');
+  applyWallpaper(0);
+  applyCursor('classic');
+
+  renderDesktopIcons();
+  buildStartMenu();
+  updateTaskbar();
+  initEvents();
+  tickClock();
+  setInterval(tickClock, 1000);
+  buildCalendar();
+  setInterval(buildCalendar, 60000);
+
+  /* boot animation → lock screen */
+  setTimeout(function(){
+    const boot = document.getElementById('boot');
+    boot.style.opacity = '0';
+    setTimeout(function(){
+      boot.style.display = 'none';
+      document.getElementById('lock').classList.add('show');
+      tickClock();
+    }, 550);
+  }, 2000);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>
